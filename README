@@ -1,0 +1,46 @@
+DEFINITION
+
+map.py :: (r1 -> r2) -> [r1] -> [r2]
+    General map function.
+
+project.py :: [col] -> [r1] -> [r2] 
+    Simple map function that just selects columns.
+
+filter.py :: (r -> Bool) -> [r] -> [r]
+    Simple filter function.
+
+groupby.py :: [col1] -> [col2] -> op -> [r1] -> [r2]
+    GroupBy function.
+    1st argument means group columns.
+    2nd argument means value columns.
+    3rd argument means an aggregation operator.
+
+(sort.py) :: (r -> r -> Bool) -> [r] -> [r]
+
+(foldl.py) :: (r2 -> r1 -> r2) -> r2 -> [r1] -> r2
+
+(product.py) :: [r1] -> [r2] -> [r3]
+    1st arg: 1st input list.
+    2nd arg: 2nd input list.
+
+(join.py) :: (r1 -> r2 -> Bool) -> (r1 -> r2 -> r3) -> [r1] -> [r2] -> [r3]
+    1st arg: adoption predicate.
+    2nd arg: constructor.
+    3rd arg: 1st input list 
+    4th arg: 2nd input list
+
+
+VARIABLES
+
+* r, rX means a "record" type.
+* col, colX means a "column index".
+* op means an aggregation function like avg, sum.
+
+
+TODO
+
+* implement sort.py.
+* implement foldl.py.
+* modify groupby.py using foldl.
+* implement product.py.
+* implement join.py
