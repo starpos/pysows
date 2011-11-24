@@ -27,6 +27,8 @@ def parseOpts(args):
                       help="Load python code for map_func.")
     parser.add_option("-s", "--separator", dest="separator", default=None,
                       help="Record separator (default spaces).")
+    parser.add_option("-v", "--invert", action="store_true", dest="invert", default=False,
+                      help="Invert match like grep -v.")
     (options, args2) = parser.parse_args(args)
     return (options, args2)
 
@@ -153,9 +155,13 @@ if __name__ == "__main__":
     else:
         filterBy = \
             generateFilterByRegex(options.regex, idxL[0], options.separator)
+    if options.invert:
+        notIfInvert = lambda x: not x
+    else:
+        notIfInvert = lambda x: x
         
     for line in sys.stdin:
         line = line.rstrip()
-        if filterBy(line):
+        if notIfInvert(filterBy(line)):
             print line
 
