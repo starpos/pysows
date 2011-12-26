@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Join two input streams, left and right.
+Left input will be load to memory as hash index.
+This tool provide inner join. Join key must be unique but need not be sorted.
+
+"""
+
 import sys
-import itertools
-import collections
 import argparse
-import os
 import re
 
 def getColumnIndexes(keyColsStr):
@@ -85,7 +89,6 @@ def generateGetOutputRecord(outColumnIndexes):
                     ret.append(rightRecord[idx - 1])
         return tuple(ret)
     return getOutputRecord
-
 
 
 def parseOpt(argStrs):
