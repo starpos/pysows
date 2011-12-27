@@ -90,7 +90,6 @@ def generateGetOutputRecord(outColumnIndexes):
         return tuple(ret)
     return getOutputRecord
 
-
 def parseOpt(argStrs):
     """
     argStrs :: [str]
@@ -123,7 +122,6 @@ def parseOpt(argStrs):
     args = parser.parse_args()
     return args
 
-
 def getKeyIndexes(args):
     """
     args :: argparse.NameSpace
@@ -134,13 +132,14 @@ def getKeyIndexes(args):
     g = getColumnIndexes
     if args.join_key is not None:
         l = g(args.join_key)
-        r = g(args.join_key)
+        r = l
     else:
         l = g(args.left_key)
         r = g(args.right_key)
-    assert len(l) == len(r)
+    if len(l) != len(r):
+        raise IOError("key index length does not equal: left %d right %d."
+                      % (len(l), len(r)))
     return (l, r)
-
 
 def recordReader(f, separator=None):
     """
@@ -198,7 +197,6 @@ def createHashTable(recordReader, getKeyFromRecord):
             h[key] = rec
     return h
 
-
 def hashJoin(hashTable, recordReader, getKeyFromRecord):
     """
     hashTable :: dict(tuple(str), tuple(str))
@@ -216,7 +214,6 @@ def hashJoin(hashTable, recordReader, getKeyFromRecord):
         if key in hashTable:
             yield (hashTable[key], rec)
 
-
 def printStrList(strList, f=sys.stdout):
     """
     Print string list separated by tab.
@@ -231,7 +228,6 @@ def printStrList(strList, f=sys.stdout):
         else:
             print >>f, str,
             isNotFirst = True
-
 
 def doMain():
     args = parseOpt(sys.argv)
@@ -252,7 +248,6 @@ def doMain():
     for lRec, rRec in resIter:
         printStrList(getOutRec(lRec, rRec))
         print
-
 
 if __name__ == "__main__":
     try:
