@@ -1,68 +1,73 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys
-import itertools
-from optparse import OptionParser
-import os
+"""
+Map a function to the list of record from an input stream.
 
-def parseOpts(args):
+"""
+
+import sys
+import traceback
+import argparse
+import pysows
+
+def parseOpts(argStrList):
     """
-    @args [str]: argument string list
-    @return (Values, [str])
+    argStrList :: [str]
+        argument string list
+    return :: argparse.Namespace
     
     """
-    parser = OptionParser()
-    parser.add_option("-g", "--groups", dest="group_indexes", default=None,
-                      help="Target group indexes separated by comma.")
-    parser.add_option("-f", "--mapfunc", dest="map_func", default='lambda x:[x]',
-                      help="Map function as python code.\n" + \
-                      "This must return sequence of printable.")
-    parser.add_option("-c", "--constructor", dest="record_constructor", default='lambda x,y:x+list(y)',
-                      help="Record constructor.\n" + \
-                      "This must return sequence of printable.")
-    parser.add_option("-l", "--load", dest="load_file", default=None,
-                      help="Load python code for map_func.")
-    (options, args2) = parser.parse_args(args)
-    return (options, args2)
+    parser = argparse.ArgumentParser(
+        description="Map a function to a list of record from an input stream.")
+    pysows.setVersion(parser)
+    parser.add_argument('-g', '--groups', metavar='COLUMNS',
+                        dest='group_indexes', default='1',
+                        help='Columns indexes separated by comma.' + \
+                            ' 0 menas all columns. (default: 0)')
+    parser.add_argument('-f', '--mapfunc', metavar='FUNCTION',
+                        dest='map_func', default='lambda *xs:xs',
+                        help='Map function as python code.' + \
+                            ' This must return sequence of printable objects.' + \
+                            " (default: 'lambda *xs:xs')")
+    parser.add_argument('-c', '--constructor', metavar='FUNCTION',
+                        dest='record_constructor',
+                        default='lambda xs,ys:list(xs)+list(ys)',
+                        help='Record constructor.' + \
+                            ' This must return sequence of printable objects.' + \
+                            " (default: 'lambda xs,ys:list(xs)+list(ys)')")
+    parser.add_argument('-l', '--load', metavar='FILE', dest='load_file', 
+                        default=None, help='Load python code for -f and -c.')
+    parser.add_argument("-s", "--separator", metavar='SEP',
+                        dest="separator", default=None,
+                        help="Record separator (default: spaces).")
 
+    return parser.parse_args(argStrList)
+
+def doMain():
+    args = parseOpts(sys.argv[1:])
+
+    g = globals()
+    l = locals()
+    pysows.loadPythonCode(args.load_file, g, l)
+    mapFunc = eval(args.map_func, g, l)
+    constructor = eval(args.record_constructor, g, l)
+
+    idxL = pysows.getColumnIndexList(args.group_indexes)
+    assert len(idxL) > 0
+    getKeyFromRec = pysows.generateGetKeyFromRecord(idxL)
+
+    reader = pysows.recordReader(sys.stdin, args.separator)
+
+    for rec in reader:
+        key = getKeyFromRec(rec)
+        mapped = mapFunc(*key)
+        outRec = constructor(rec, mapped)
+        pysows.printList(outRec)
+        print
 
 if __name__ == "__main__":
-    options, args = parseOpts(sys.argv[1:])
-    #print options, args
-    
-    fn = options.load_file
-    if fn and os.path.isfile(fn):
-        exec(file(fn), globals(), locals())
-
-    map_func = eval(options.map_func, globals(), locals())
-    record_constructor = eval(options.record_constructor, globals(), locals())
-
-    if options.group_indexes:
-        indexStrL = options.group_indexes.split(',')
-        idxL = list(itertools.imap(lambda x:int(x), iter(indexStrL)))
-    else:
-        idxL = []
-    #print idxL
-    
-    def getFuncArgs(strL):
-        if len(idxL) == 0:
-            return tuple(strL)
-        else:
-            ret = []
-            for i in idxL:
-                assert i - 1 >= 0
-                assert i - 1 < len(strL) 
-                ret.append(strL[i - 1])
-            return tuple(ret)
-
-    for line in sys.stdin:
-        line = line.rstrip()
-        dataL = line.split()
-        args = getFuncArgs(dataL)
-        mapped = map_func(*args)
-        res = record_constructor(dataL, mapped)
-
-        for x in res:
-            print x,
-        print
+    try:
+        doMain()
+    except Exception, e:
+        pysows.exitWithError(e)
