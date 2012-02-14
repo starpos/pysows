@@ -49,7 +49,7 @@ def doMain():
 
     g = globals()
     l = locals()
-    pysows.loadPythonCode(args.load_file, g, l)
+    pysows.loadPythonCodeFile(args.load_file, g, l)
     mapFunc = eval(args.map_func, g, l)
     constructor = eval(args.record_constructor, g, l)
 

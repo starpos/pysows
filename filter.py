@@ -112,7 +112,7 @@ def doMain():
 
     g = globals()
     l = locals()
-    pysows.loadPythonCode(args.load_file, g, l)
+    pysows.loadPythonCodeFile(args.load_file, g, l)
 
     if args.regex_list is None:
         filterBy = generateFilterByPredicate(args.predicate, idxL, g, l)
