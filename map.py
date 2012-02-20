@@ -55,7 +55,7 @@ def doMain():
 
     idxL = pysows.getColumnIndexList(args.group_indexes)
     assert len(idxL) > 0
-    getKeyFromRec = pysows.generateGetKeyFromRecord(idxL)
+    getKeyFromRec = pysows.generateProject(idxL)
 
     reader = pysows.recordReader(sys.stdin, args.separator)
 
