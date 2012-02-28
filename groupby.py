@@ -7,6 +7,7 @@ GroupBy aggregator of a list of csv-like record as an input stream.
 
 import sys
 import argparse
+from decimal import Decimal
 import pysows
 
 def getOperators(opStr, valIdx):
@@ -18,31 +19,36 @@ def getOperators(opStr, valIdx):
     
     """
     def sum_init(valIdx):
-        """ return :: [float] """
-        return map(lambda x: 0.0, range(len(valIdx)))
+        """ return :: [Decimal] """
+        return map(lambda x: Decimal('0.0'), range(len(valIdx)))
     def sum_op(a, b):
         """
-        a :: [float]
+        a :: [Decimal]
         b :: [str]
         
         """
         assert(len(a) == len(b))
-        return map(lambda (x,y): x + float(y), zip(a,b))
+        return map(lambda (x,y): x + Decimal(y), zip(a,b))
     def sum_end(a):
         return a
     def avg_init(valIdx):
+        """
+
+        return :: (count :: int, sum :: Decimal)
+        
+        """
         return (0, sum_init(valIdx))
     def avg_op(a, b):
         """
-        a :: (int, [float])
-        b [float]
+        a :: (int, [Decimal])
+        b [Decimal]
         
         """
         assert(len(a[1]) == len(b))
         return (a[0] + 1, sum_op(a[1], b))
     def avg_end(a):
         n, xs = a
-        return map(lambda x: x / float(n), xs)
+        return map(lambda x: x / Decimal(n), xs)
 
     if opStr == "sum":
         return (sum_init, sum_op, sum_end)
