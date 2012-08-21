@@ -256,21 +256,24 @@ class Schema:
       util.checkAndThrow(isinstance(colType, ColumnType))
     return True
 
-  def __getitem__(self, idx):
+  def __getitem__(self, nameOrIdx):
     """
-    idx :: int
+    nameOrIdx :: str | int
     return :: SchemaEntry
 
     """
-    assert(isinstance(idx, int))
-    return self.__schemaEntryL[idx]  # may throw IndexError.
+    if isinstance(nameOrIdx, int):
+      return self.__schemaEntryL[nameOrIdx] # may throw IndexError.
+    else:
+      assert(isinstance(nameOrIdx, str))
+      return self.getEntry(nameOrIdx)
 
-  def getType(self, name):
+  def getType(self, nameOrIdx):
     """
     return :: ColumnType-inherited | None
 
     """
-    e = self.getEntry(name)
+    e = self[nameOrIdx]
     if e is None:
       return None
     else:
@@ -687,15 +690,17 @@ def testRecord():
   assert(rec.raw() == rawRec)
   assert(rec.project(['col1']) == Record(Schema.parse('#col1'), ('1',)))
 
-
   schema = Schema.parse('#c0::Integer c1::Float c2::Decimal')
   rawRec = (0, 0.0, decimal.Decimal(0))
   rec = Record(schema, rawRec)
   assert(len(rec) == 3)
-  assert(rec.schema() == Schema.parse('#t0::Integer t2::Float t3::Decimal'))
+  assert(rec.schema() == Schema.parse('#t0::Integer t1::Float t2::Decimal'))
   assert(rec[0] == 0)
   assert(rec[1] == 0.0)
   assert(rec[2] == decimal.Decimal(0))
+  assert(rec['c0'] == 0)
+  assert(rec['c1'] == 0.0)
+  assert(rec['c2'] == decimal.Decimal(0))
 
 class IterableData:
   """
@@ -1009,11 +1014,15 @@ class Relation:
 
   def map(self, colsFrom, schemaTo, mapper, name=None, reuse=False):
     """
+    Map a relation to another.
+
     colsFrom :: [str]
     schemaTo :: Schema
     mapper :: rawRec -> rawRec
     
     """
+    assert(util.isList(colsFrom, str))
+    assert(isinstance(schemaTo, Schema))
     def g():
       for rec in self.getRecG():
         yield mapper(rec[colsFrom])
@@ -1021,6 +1030,10 @@ class Relation:
 
   def mapR(self, schemaTo, mapper, name=None, reuse=False):
     """
+    Map a relation to another.
+    You can use schema information inside the mapper func
+    by calling record.schema().
+
     schemaTo :: Schema
         Result schema.
     mapper :: Record -> rawRec
@@ -1033,6 +1046,8 @@ class Relation:
 
   def mapG(self, mapper, colsFrom=None):
     """
+    Convert to Arbitrary-typed lazy list from records.
+
     mapper :: rawRec -> a
     return :: generator(a) | None
     a :: any
