@@ -7,7 +7,6 @@ Sort a list of record as an input stream.
 """
 
 import sys
-import os
 import re
 import argparse
 import pysows
