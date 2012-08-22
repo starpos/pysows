@@ -10,7 +10,7 @@ import sys
 import os
 import traceback
 
-VERSION_STR = '0.1a'
+VERSION_STR = '0.2'
 
 def setVersion(parser):
     """
