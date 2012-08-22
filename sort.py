@@ -1,46 +1,57 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Sort a list of record as an input stream.
+
+"""
+
 import sys
-import itertools
-import collections
-from optparse import OptionParser
-import os
 import re
+import argparse
+import decimal
+import pysows
 
 def parseOpts(args):
     """
-    @args [str]: argument string list
-    @return (Values, [str])
+    args :: [str]
+        argument string list
+    return :: arpgarser.Namespace
     
     """
-    parser = OptionParser()
-    parser.set_usage("Usage: %prog [options]\n" + \
-                     "Sort csv-like records from stdin.")
-    parser.add_option("-g", "--groups", dest="group_indexes", default='0',
-                      help="Target group indexes separated by comma." + \
-                      "You can add a prefix to each index." + \
-                      "n or f: the column is treated as float value." + \
-                      "i: the column is treated as int value. Example: 2,n3,i1")
-    parser.add_option("-k", "--key_func", dest="key_func", default="lambda *args: args",
-                      help="Key function. (default: lambda *args: args)")
-    parser.add_option("-c", "--cmp_func", dest="cmp_func", default=None,
-                      help="(Not supported yet) Compare function. -c is prior to -k option.")
-    parser.add_option("-r", "--reverse", action="store_true", dest="reverse", default=False,
-                      help="Reverse the result of comprations.")
-    parser.add_option("-l", "--load", dest="load_file", default=None,
-                      help="Load python code for key_func or cmp_func.")
-    parser.add_option("-s", "--separator", dest="separator", default=None,
-                      help="Record separator (default: spaces).")
-    (options, args2) = parser.parse_args(args)
-    return (options, args2)
+    parser = argparse.ArgumentParser(
+        description="Sort a list of record as an input stream.")
+    pysows.setVersion(parser)
+    parser.add_argument("-g", "--groups", dest="group_indexes", 
+                        metavar='COLUMNS', default='0',
+                        help="Column index list separated by comma." + \
+                            " You can add a prefix to each index: " + \
+                            " 'n' or 'f': a column is treated as float value." + \
+                            " 'i': a column is treated as int value." + \
+                            " No prefix: a column is treaded as string." + \
+                            " Index 1 means the first column and 0 means all columns." + \
+                            " Example: '2,n3,i1'. (default: '0')")
+    parser.add_argument("-k", "--keyfunc", dest="key_func",
+                        metavar='FUNCTION', default="lambda *xs: xs",
+                        help="Key function. (default: 'lambda *args: args')")
+    parser.add_argument("-c", "--cmpfunc", dest="cmp_func", 
+                        metavar='FUNCTION', default=None,
+                        help="(Not supported yet) Compare function. -c is prior to -k option.")
+    parser.add_argument("-r", "--reverse", action="store_true", dest="reverse",
+                        default=False,
+                        help="Reverse the result of comprations.")
+    parser.add_argument("-l", "--load", dest="load_file", default=None,
+                        help="Load python code for -k or -c.")
+    parser.add_argument("-s", "--separator", dest="separator", 
+                        metavar='SEP', default=None,
+                        help="Column separator. (default: spaces)")
+    return  parser.parse_args(args)
 
-
-def keyLineGenerator(idxL, keyFunc, lineG, separator=None):
+def sortKeyAndLineGenerator(convIdxL, keyFunc, lineG, separator=None):
     """
     Make a (key, line) generator from a line generator.
     
-    idxL :: [(str -> ANY, int)]
+    convIdxL :: [(str -> ANY, int)]
         Index list.
         1st: converter from string to some type which is comparable.
         2nd: item index.
@@ -49,19 +60,33 @@ def keyLineGenerator(idxL, keyFunc, lineG, separator=None):
     lineG :: generator(str)
         Line generator. (file object etc)
     separator :: str
-        Line separator.
+        Column separator.
 
     return :: generator((ANY, str))
         1st: sort key which must be comparable.
         2nd: line without eol.
     
     """
-    getInputKey = generateInputKeyFunc(idxL)
-
-    def getKeyLine(idxL, keyFunc, line):
+    def getKey(rec):
         """
-        idxL :: [(str -> ANY, int)]
-        keyFunc :: *tuple(any) -> tuple(any)
+        rec :: tuple(str)
+        return :: tuple(ANY)
+
+        """
+        length = len(rec)
+        ret = []
+        for converter, idx in convIdxL:
+            if idx == 0:
+                ret += map(converter, list(rec))
+            elif 0 < idx and idx <= length:
+                ret.append(converter(rec[idx - 1]))
+            else:
+                raise IOError("Index outbound error %d [1,%d]" % (idx, length))
+        return tuple(ret)
+
+    def getSortKeyAndLine(keyFunc, line):
+        """
+        keyFunc :: *tuple(ANY) -> tuple(ANY)
         line :: str
             input string line with eol.
             
@@ -71,91 +96,60 @@ def keyLineGenerator(idxL, keyFunc, lineG, separator=None):
         
         """
         line = line.rstrip()
-        lineL = line.split(separator)
-        inputKeys = getInputKey(*lineL)
-        key = keyFunc(*inputKeys)
-        return key, line
+        rec = line.split(separator)
+        key = getKey(rec)
+        sortKey = keyFunc(*key)
+        return sortKey, line
 
     for line in lineG:
-        yield getKeyLine(idxL, keyFunc, line)
+        yield getSortKeyAndLine(keyFunc, line)
 
 
-def generateIdxL(groupIndexesStr):
+def generateConvIdxL(columnIndexListStr):
     """
-    groupIndexesStr :: str
-        Group index string like "1,3,n2,i5".
+    columnIndexListStr :: str
+        Column index list as a string like "1,3,n2,i5".
     return :: [((str -> ANY),int)]
         1st: converter.
         2nd: index.
         
     """
-    indexStrL = groupIndexesStr.split(',')
-    re1 = re.compile(r'([fin]?)([0-9]+)')
-    def conv(x):
+    def getConverter(prefix):
+        """
+        prefix :: str
+        return :: str -> ANY
+
+        """
+        assert(isinstance(prefix, str))
+        if prefix == 'i':
+            return lambda x: int(x)
+        elif prefix == 'f' or prefix == 'n':
+            return lambda x: float(x)
+        elif prefix == 'd':
+            return lambda x: decimal.Decimal(x)
+        else:
+            return lambda x : x
+
+    re1 = re.compile(r'([find]?)([0-9]+)')
+    def getConverterAndIndex(x):
         """
         x :: str
-            String must be match '[fin]?[0-9]+' regex.
-
+            Column index with prefix.
         return :: (str -> ANY, int)
-            1st: i -> converter to int.
-                 f or n -> converter to float.
-            2nd: index.
-        
+
         """
         m = re1.match(x)
         if m:
-            c = m.group(1)
-            if c == 'i':
-                converter = lambda x : int(x)
-            elif c == 'f' or c == 'n':
-                converter = lambda x : float(x)
-            else:
-                converter = lambda x : x
-            index = int(m.group(2))
-            return (converter, index)
+            converter = getConverter(m.group(1))
+            idx = int(m.group(2))
+            return (converter, idx)
         else:
-            raise Exception("%s is wrong as an index." % x)
-        
-    idxL = list(itertools.imap(conv, iter(indexStrL)))
-    return idxL
+            raise IOError("%s is wrong as an index." % x)
 
+    idxStrL = columnIndexListStr.split(',')
+    return map(getConverterAndIndex, idxStrL)
 
-def generateInputKeyFunc(idxL):
-    """
-    Generate getInputKey function.
-
-    idxL :: [(str -> ANY), int]
-    return :: *tuple(str) -> tuple(ANY)
-    
-    """
-    def getInputKey(*args):
-        """
-        args :: tuple(str)
-        return :: tuple(ANY)
-
-        Constraints:
-            len(args) == len(idxL) must be true.
-            
-        """
-        return tuple([converter(args[idx-1]) for converter, idx in idxL])
-    
-    return getInputKey
-
-
-def loadFile(fileName):
-    """
-    Load file as python code.
-    
-    fileName :: str
-    return :: None
-    
-    """
-    fn = fileName
-    if fn and os.path.isfile(fn):
-        exec(file(fn), globals(), locals())
-
-
-def generateKeyFunc(keyFuncStr):
+def generateKeyFunc(keyFuncStr, globalNamespace, localNamespace):
     """
     Generate key function.
 
@@ -165,27 +159,26 @@ def generateKeyFunc(keyFuncStr):
     
     """
     if keyFuncStr is not None:
-        keyFunc = eval(keyFuncStr, globals(), locals())
+        return eval(keyFuncStr, globalNamespace, localNamespace)
     else:
-        keyFunc = lambda *args: args
-    return keyFunc
+        return lambda *xs: xs
 
+def doMain():
+    args = parseOpts(sys.argv[1:])
 
-def main():
-    options, args = parseOpts(sys.argv[1:])
-    #print options, args
-
-    idxL = generateIdxL(options.group_indexes)
-    #print idxL #debug
-
-    loadFile(options.load_file)
-    keyFunc = generateKeyFunc(options.key_func)
-
-    for key, line in sorted(keyLineGenerator(idxL, keyFunc, sys.stdin, options.separator),
-                            key=lambda (x,y):x,
-                            reverse=options.reverse):
+    convIdxL = generateConvIdxL(args.group_indexes)
+    
+    g = globals()
+    l = locals()
+    pysows.loadPythonCodeFile(args.load_file, g, l)
+    keyFunc = generateKeyFunc(args.key_func, g, l)
+    reader = sortKeyAndLineGenerator(convIdxL, keyFunc, sys.stdin, args.separator)
+    
+    for sortKey, line in sorted(reader, key=lambda (x,y):x, reverse=args.reverse):
         print line
 
-
 if __name__ == "__main__":
-    main()
+    try:
+        doMain()
+    except Exception, e:
+        pysows.exitWithError(e)

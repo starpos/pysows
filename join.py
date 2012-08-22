@@ -11,17 +11,9 @@ This tool provide inner join. Join key must be unique but need not be sorted.
 import sys
 import argparse
 import re
+import pysows
 
-def getColumnIndexes(keyColsStr):
-    """
-    keyColsStr :: str
-        like "1,2,3". 0 means all columns.
-    return :: [int]
-        list of column index.
-    """
-    return map(int, keyColsStr.split(','))
-
-def getColumnIndexesWithPrefix(keyColsWithPrefix):
+def getColumnIndexListWithPrefix(keyColsWithPrefix):
     """
     keyColsWithPrefix :: str
         like "l1,l2,r1,r3". 
@@ -30,7 +22,7 @@ def getColumnIndexesWithPrefix(keyColsWithPrefix):
         list of prefix and column index.
 
     """
-    re1 = re.compile('(\w+)(\d+)')
+    re1 = re.compile(r'([a-zA-Z_]+)([0-9]+)')
     def match(col):
         m = re1.match(col)
         if m:
@@ -90,26 +82,25 @@ def generateGetOutputRecord(outColumnIndexes):
         return tuple(ret)
     return getOutputRecord
 
-
-def parseOpt(argStrs):
+def parseOpts(argStrs):
     """
     argStrs :: [str]
         argument string list.
-    return :: 
+    return :: argparse.Namespace
 
     """
     parser = argparse.ArgumentParser(
         description="Join two input streams." + 
         " Left input will be load to memory as hash index." + 
         " This tool provide inner join. Join key must be unique but need not be sorted.")
-    parser.add_argument('--version', action='version', version='0.1a')
-    parser.add_argument('-lk', metavar='COLS', dest='left_key', default='1',
+    pysows.setVersion(parser)
+    parser.add_argument('-lk', metavar='COLUMNS', dest='left_key', default='1',
                         help='Left key columns like "1,2,3". (default: 1).')
-    parser.add_argument('-rk', metavar='COLS', dest='right_key', default='1',
+    parser.add_argument('-rk', metavar='COLUMNS', dest='right_key', default='1',
                         help='Right key columns like "1,2,3". (default: 1).')
-    parser.add_argument('-jk', metavar='COLS', dest='join_key', default=None,
+    parser.add_argument('-jk', metavar='COLUMNS', dest='join_key', default=None,
                         help='Both -lk and -rk.')
-    parser.add_argument('-oc', metavar='COLS', dest='out_columns', default='l0,r0',
+    parser.add_argument('-oc', metavar='COLUMNS', dest='out_columns', default='l0,r0',
                         help='Output columns. prefix "l" means left input, ' + 
                         '"r" means right input. (default: l0,r0)')
     parser.add_argument('-li', metavar='INPUT', dest='left_input', default=None, required=True,
@@ -120,66 +111,27 @@ def parseOpt(argStrs):
                         help='Right input stream. (default: stdin)')
     parser.add_argument("-s", "--separator", metavar='SEP', dest="separator", default=None,
                         help="Record separator (default: spaces).")
-    args = parser.parse_args()
+    args = parser.parse_args(argStrs)
     return args
 
-
-def getKeyIndexes(args):
+def getKeyIndexLists(args):
     """
     args :: argparse.NameSpace
     return ([int], [int])
         Left key indexes and right key indexes.
 
     """
-    g = getColumnIndexes
+    g = pysows.getColumnIndexList
     if args.join_key is not None:
         l = g(args.join_key)
-        r = g(args.join_key)
+        r = l
     else:
         l = g(args.left_key)
         r = g(args.right_key)
-    assert len(l) == len(r)
+    if len(l) != len(r):
+        raise IOError("key index length does not equal: left %d right %d."
+                      % (len(l), len(r)))
     return (l, r)
-
-
-def recordReader(f, separator=None):
-    """
-    f :: file
-       Input file.
-    separator :: str
-       Column separator.
-    return :: generator(tuple(str))
-
-    """
-    for line in f:
-        line = line.rstrip()
-        yield tuple(line.split(separator))
-
-def generateGetKeyFromRecord(keyIdxList):
-    """
-    Generate a function that gets key from record.
-
-    keyIdxList :: [int]
-        1 means first column.
-        0 means all columns.
-    return :: tuple(str) -> tuple(str)
-        record -> key.
-
-    """
-    def getKeyFromRecord(rec):
-        """
-        rec :: tuple(str)
-        return :: tuple(str)
-
-        """
-        ret = []
-        for idx in keyIdxList:
-            if idx == 0:
-                ret += list(rec)
-            else:
-                ret.append(rec[idx - 1])
-        return tuple(ret)
-    return getKeyFromRecord
 
 def createHashTable(recordReader, getKeyFromRecord):
     """
@@ -198,7 +150,6 @@ def createHashTable(recordReader, getKeyFromRecord):
             h[key] = rec
     return h
 
-
 def hashJoin(hashTable, recordReader, getKeyFromRecord):
     """
     hashTable :: dict(tuple(str), tuple(str))
@@ -216,46 +167,29 @@ def hashJoin(hashTable, recordReader, getKeyFromRecord):
         if key in hashTable:
             yield (hashTable[key], rec)
 
-
-def printStrList(strList, f=sys.stdout):
-    """
-    Print string list separated by tab.
-    
-    strList :: [str]
-
-    """
-    isNotFirst = False
-    for str in strList:
-        if isNotFirst:
-            print >>f, "\t", str,
-        else:
-            print >>f, str,
-            isNotFirst = True
-
-
 def doMain():
-    args = parseOpt(sys.argv)
+    args = parseOpts(sys.argv[1:])
 
-    outColumnIdxes = map(prefixToIsLeft, getColumnIndexesWithPrefix(args.out_columns))
+    outColumnIdxes = map(prefixToIsLeft,
+                         getColumnIndexListWithPrefix(args.out_columns))
     getOutRec = generateGetOutputRecord(outColumnIdxes)
     
-    lReader = recordReader(args.left_input, args.separator)
-    rReader = recordReader(args.right_input, args.separator)
+    lReader = pysows.recordReader(args.left_input, args.separator)
+    rReader = pysows.recordReader(args.right_input, args.separator)
 
-    lKeyIdxL, rKeyIdxL = getKeyIndexes(args)
-    lGetKey = generateGetKeyFromRecord(lKeyIdxL)
-    rGetKey = generateGetKeyFromRecord(rKeyIdxL)
+    lKeyIdxL, rKeyIdxL = getKeyIndexLists(args)
+    lGetKey = pysows.generateProject(lKeyIdxL)
+    rGetKey = pysows.generateProject(rKeyIdxL)
 
     hashTable = createHashTable(lReader, lGetKey)
-    resIter = hashJoin(hashTable, rReader, rGetKey)
+    resultIter = hashJoin(hashTable, rReader, rGetKey)
     
-    for lRec, rRec in resIter:
-        printStrList(getOutRec(lRec, rRec))
+    for lRec, rRec in resultIter:
+        pysows.printList(getOutRec(lRec, rRec))
         print
-
 
 if __name__ == "__main__":
     try:
         doMain()
-    except IOError, e:
-        print >>sys.stderr, e
+    except Exception, e:
+        pysows.exitWithError(e)
