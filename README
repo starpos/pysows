@@ -53,6 +53,10 @@ util.py, relation.py, csvlike.py
 
 TODO
 
+* support simple-type-conversion with -g option.
+  for filter.py, map.py.
+* support accumulate manipulation of groupby.py.
+  inside -v option instead -o option.
 * support typing using relation/csvlike.
 * implement foldl.py.
 * modify groupby.py using foldl.
