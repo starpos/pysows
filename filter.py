@@ -30,9 +30,9 @@ def parseOpts(args):
                         help="Predicate as python code." + \
                             " This must return bool value.")
     parser.add_argument("-r", "--regex", dest="regex_list", 
-                        nargs='+', default=None,
+                        nargs='+', metavar='REGEX_PATTERN', default=None,
                         help="Regular expression." + \
-                            " Both -p and -r options are specified, -r is used.")
+                            " When both -p and -r options are specified, -r is used.")
     parser.add_argument("-l", "--load", dest="load_file", 
                         metavar='FILE', default=None,
                         help="Load python code for -p.")

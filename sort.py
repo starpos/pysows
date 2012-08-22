@@ -9,6 +9,7 @@ Sort a list of record as an input stream.
 import sys
 import re
 import argparse
+import decimal
 import pysows
 
 def parseOpts(args):
@@ -119,14 +120,17 @@ def generateConvIdxL(columnIndexListStr):
         return :: str -> ANY
 
         """
+        assert(isinstance(prefix, str))
         if prefix == 'i':
             return lambda x: int(x)
         elif prefix == 'f' or prefix == 'n':
             return lambda x: float(x)
+        elif prefix == 'd':
+            return lambda x: decimal.Decimal(x)
         else:
             return lambda x : x
 
-    re1 = re.compile(r'([fin]?)([0-9]+)')
+    re1 = re.compile(r'([find]?)([0-9]+)')
     def getConverterAndIndex(x):
         """
         x :: str
