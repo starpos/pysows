@@ -15,19 +15,19 @@ groupby.py :: [col1] -> [col2] -> op -> [r1] -> [r2]
     2nd argument means value columns.
     3rd argument means an aggregation operator.
 
-(sort.py) :: (r -> r -> Bool) -> [r] -> [r]
+sort.py :: (r -> r -> Bool) -> [r] -> [r]
+
+join.py :: (r1 -> r2 -> Bool) -> (r1 -> r2 -> r3) -> [r1] -> [r2] -> [r3]
+    1st arg: adoption predicate.
+    2nd arg: constructor.
+    3rd arg: 1st input list 
+    4th arg: 2nd input list
 
 (foldl.py) :: (r2 -> r1 -> r2) -> r2 -> [r1] -> r2
 
 (product.py) :: [r1] -> [r2] -> [r3]
     1st arg: 1st input list.
     2nd arg: 2nd input list.
-
-(join.py) :: (r1 -> r2 -> Bool) -> (r1 -> r2 -> r3) -> [r1] -> [r2] -> [r3]
-    1st arg: adoption predicate.
-    2nd arg: constructor.
-    3rd arg: 1st input list 
-    4th arg: 2nd input list
 
 
 VARIABLES
@@ -37,10 +37,28 @@ VARIABLES
 * op means an aggregation function like avg, sum.
 
 
+CURRENT IMPLEMENTATION
+
+pysows.py
+  Common components.
+
+map.py, project.py, sort.py, filter.py, sort.py,
+groupby.py, join.py
+  Command-line tools to treat csv-like streams.
+
+util.py, relation.py, csvlike.py
+  Currently unused. This supports typing.
+  (String, Integer, Float, Decimal)
+
+
 TODO
 
-* implement sort.py.
+* support typing using relation/csvlike.
 * implement foldl.py.
 * modify groupby.py using foldl.
 * implement product.py.
-* implement join.py
+* refactor command-line tools source.
+  (general functionalities must be moved to pysows.py.)
+* design and implement a language to implement 
+  simple stream processing easily 
+  using files/pipes.
