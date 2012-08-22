@@ -7,7 +7,6 @@ Map a function to the list of record from an input stream.
 """
 
 import sys
-import traceback
 import argparse
 import pysows
 
@@ -24,7 +23,7 @@ def parseOpts(argStrList):
     parser.add_argument('-g', '--groups', metavar='COLUMNS',
                         dest='group_indexes', default='1',
                         help='Columns indexes separated by comma.' + \
-                            ' 0 menas all columns. (default: 0)')
+                            ' 0 means all columns. (default: 0)')
     parser.add_argument('-f', '--mapfunc', metavar='FUNCTION',
                         dest='map_func', default='lambda *xs:xs',
                         help='Map function as python code.' + \

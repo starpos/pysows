@@ -9,7 +9,6 @@ Filter a list of record as an input strem.
 import sys
 import re
 import argparse
-import traceback
 import pysows
 
 def parseOpts(args):
