@@ -7,9 +7,7 @@ Sort a list of record as an input stream.
 """
 
 import sys
-import re
 import argparse
-import decimal
 import pysows
 
 def parseOpts(args):
@@ -24,13 +22,7 @@ def parseOpts(args):
     pysows.setVersion(parser)
     parser.add_argument("-g", "--groups", dest="group_indexes", 
                         metavar='COLUMNS', default='0',
-                        help="Column index list separated by comma." + \
-                            " You can add a prefix to each index: " + \
-                            " 'n' or 'f': a column is treated as float value." + \
-                            " 'i': a column is treated as int value." + \
-                            " No prefix: a column is treaded as string." + \
-                            " Index 1 means the first column and 0 means all columns." + \
-                            " Example: '2,n3,i1'. (default: '0')")
+                        help=pysows.GROUPS_HELP_MESSAGE)
     parser.add_argument("-k", "--keyfunc", dest="key_func",
                         metavar='FUNCTION', default="lambda *xs: xs",
                         help="Key function. (default: 'lambda *args: args')")
@@ -104,51 +96,6 @@ def sortKeyAndLineGenerator(convIdxL, keyFunc, lineG, separator=None):
     for line in lineG:
         yield getSortKeyAndLine(keyFunc, line)
 
-
-def generateConvIdxL(columnIndexListStr):
-    """
-    columnIndexListStr :: str
-        Column index list as a string like "1,3,n2,i5".
-    return :: [((str -> ANY),int)]
-        1st: converter.
-        2nd: index.
-        
-    """
-    def getConverter(prefix):
-        """
-        prefix :: str
-        return :: str -> ANY
-
-        """
-        assert(isinstance(prefix, str))
-        if prefix == 'i':
-            return lambda x: int(x)
-        elif prefix == 'f' or prefix == 'n':
-            return lambda x: float(x)
-        elif prefix == 'd':
-            return lambda x: decimal.Decimal(x)
-        else:
-            return lambda x : x
-
-    re1 = re.compile(r'([find]?)([0-9]+)')
-    def getConverterAndIndex(x):
-        """
-        x :: str
-            Column index with prefix.
-        return :: (str -> ANY, int)
-
-        """
-        m = re1.match(x)
-        if m:
-            converter = getConverter(m.group(1))
-            idx = int(m.group(2))
-            return (converter, idx)
-        else:
-            raise IOError("%s is wrong as an index." % x)
-
-    idxStrL = columnIndexListStr.split(',')
-    return map(getConverterAndIndex, idxStrL)
-
 def generateKeyFunc(keyFuncStr, globalNamespace, localNamespace):
     """
     Generate key function.
@@ -166,7 +113,7 @@ def generateKeyFunc(keyFuncStr, globalNamespace, localNamespace):
 def doMain():
     args = parseOpts(sys.argv[1:])
 
-    convIdxL = generateConvIdxL(args.group_indexes)
+    convIdxL = pysows.getTypedColumnIndexList(args.group_indexes)
     
     g = globals()
     l = locals()

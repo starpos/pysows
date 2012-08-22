@@ -23,7 +23,7 @@ def parseOpts(args):
     pysows.setVersion(parser)
     parser.add_argument("-g", "--groups", dest="group_indexes", 
                         metavar='COLUMNS', default='0',
-                        help="Column index list separated by comma.")
+                        help=pysows.GROUPS_HELP_MESSAGE)
     parser.add_argument("-p", "--predicate", dest="predicate", 
                         metavar='PREDICATE', 
                         default='lambda *xs:True',
@@ -44,13 +44,13 @@ def parseOpts(args):
                         help="Invert match like grep -v.")
     return parser.parse_args(args)
 
-def generateFilterByPredicate(predicateStr, idxL, globalNamespace, localNamespace):
+def generateFilterByPredicate(predicateStr, convIdxL, globalNamespace, localNamespace):
     """
     predicateStr :: str
         Predicate string.
         After evaled, predicate type must be (*xs -> bool).
-    idxL :: [int]
-        Column index list.
+    convIdxL :: [(str -> ANY), int]
+        Column index list with type converter.
     globalNamespace :: dict
         Global name space.
     localNamespace :: dict
@@ -60,7 +60,7 @@ def generateFilterByPredicate(predicateStr, idxL, globalNamespace, localNamespac
         
     """
     predicate = eval(predicateStr, globalNamespace, localNamespace)
-    project1 = pysows.generateProject(idxL)
+    project1 = pysows.generateProjectConv(convIdxL)
 
     def filterByPredicate(rec):
         """
@@ -72,12 +72,13 @@ def generateFilterByPredicate(predicateStr, idxL, globalNamespace, localNamespac
     return filterByPredicate
 
 
-def generateFilterByRegex(regexStrL, idxL):
+def generateFilterByRegex(regexStrL, convIdxL):
     """
     regexStrL :: [str]
         Regular expression string list.
-    idxL :: [int]
-        Column index list.
+    convIdxL :: [(str -> ANY), int]
+        Column index list with converter.
+        converters will be ignored.
         Specify 1 for first element.
         0 means all columns.
     separator :: str
@@ -87,6 +88,7 @@ def generateFilterByRegex(regexStrL, idxL):
     
     """
     regexL = map(re.compile, regexStrL)
+    idxL = map(lambda (_, idx): idx, convIdxL)
     project1 = pysows.generateProject(idxL)
     
     def filterByRegex(rec):
@@ -107,16 +109,16 @@ def generateFilterByRegex(regexStrL, idxL):
 def doMain():
     args = parseOpts(sys.argv[1:])
     
-    idxL = pysows.getColumnIndexList(args.group_indexes)
+    convIdxL = pysows.getTypedColumnIndexList(args.group_indexes)
 
     g = globals()
     l = locals()
     pysows.loadPythonCodeFile(args.load_file, g, l)
 
     if args.regex_list is None:
-        filterBy = generateFilterByPredicate(args.predicate, idxL, g, l)
+        filterBy = generateFilterByPredicate(args.predicate, convIdxL, g, l)
     else:
-        filterBy = generateFilterByRegex(args.regex_list, idxL)
+        filterBy = generateFilterByRegex(args.regex_list, convIdxL)
     if args.invert:
         notIfInvert = lambda x: not x
     else:

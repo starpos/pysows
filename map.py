@@ -22,8 +22,7 @@ def parseOpts(argStrList):
     pysows.setVersion(parser)
     parser.add_argument('-g', '--groups', metavar='COLUMNS',
                         dest='group_indexes', default='1',
-                        help='Columns indexes separated by comma.' + \
-                            ' 0 means all columns. (default: 0)')
+                        help=pysows.GROUPS_HELP_MESSAGE)
     parser.add_argument('-f', '--mapfunc', metavar='FUNCTION',
                         dest='map_func', default='lambda *xs:xs',
                         help='Map function as python code.' + \
@@ -52,9 +51,9 @@ def doMain():
     mapFunc = eval(args.map_func, g, l)
     constructor = eval(args.record_constructor, g, l)
 
-    idxL = pysows.getColumnIndexList(args.group_indexes)
-    assert len(idxL) > 0
-    getKeyFromRec = pysows.generateProject(idxL)
+    convIdxL = pysows.getTypedColumnIndexList(args.group_indexes)
+    assert len(convIdxL) > 0
+    getKeyFromRec = pysows.generateProjectConv(convIdxL)
 
     reader = pysows.recordReader(sys.stdin, args.separator)
 
