@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 __all__ = ['Schema', 'Record', 'Relation', 'joinRelations']
 
@@ -328,8 +329,12 @@ class Schema:
     """
     return len(self.__schemaEntryL)
 
+  def show(self, sep='\t'):
+    assert(isinstance(sep, str))
+    return '#' + sep.join(map(str, self.__schemaEntryL))
+
   def __str__(self):
-    return '#' + '\t'.join(map(str, self.__schemaEntryL))
+    return self.show()
 
   @classmethod
   def parse(self, schemaStr, sep=None):
@@ -362,16 +367,17 @@ class Schema:
 
     return True
 
-  def toStr(self, rawRec):
+  def toStr(self, rawRec, sep='\t'):
     """
     Convert to rawRec to string representation.
     rawRec :: tuple
+    sep :: str
     return :: str
 
     """
     assert(self.isMatch(rawRec))
-    return '\t'.join(map(lambda (schemaE, val): schemaE.type().toStr(val),
-                         zip(self.foreach(), rawRec)))
+    return sep.join(map(lambda (schemaE, val): schemaE.type().toStr(val),
+                        zip(self.foreach(), rawRec)))
 
   def project(self, colNameL):
     """
@@ -1086,14 +1092,26 @@ class Relation:
     assert(isinstance(rawRecL, list))
     self.__idata = self.__idata + IterableData(rawRecL, reuse=self.__reuse)
 
-  def show(self):
+  def show(self, sep='\t'):
     """
+    sep :: str
     return :: str
-    n
+    
     """
-    return str(self.schema()) + '\n' + \
-        '\n'.join(map(lambda rawRec: self.schema().toStr(rawRec), self.getL())) + \
-        '\n'
+    return '\n'.join(list(self.showG(sep=sep))) + '\n'
+    #return str(self.schema()) + '\n' + \
+    #    '\n'.join(map(lambda rawRec: self.schema().toStr(rawRec), self.getL())) + \
+    #    '\n'
+
+  def showG(self, sep='\t'):
+    """
+    return :: generator(str)
+
+    """
+    assert(isinstance(sep, str))
+    yield self.schema().show(sep)
+    for rawRec in self.getG():
+      yield self.schema().toStr(rawRec, sep)
 
   def __str__(self):
     """
