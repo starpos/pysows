@@ -16,7 +16,7 @@ def getOperators(opStr, valIdx):
         operator string
     return :: (a, a -> [str] -> a, a -> [b])
         operator functions.
-    
+
     """
     def sum_init(valIdx):
         """ return :: [Decimal] """
@@ -25,7 +25,7 @@ def getOperators(opStr, valIdx):
         """
         a :: [Decimal]
         b :: [str]
-        
+
         """
         assert(len(a) == len(b))
         return map(lambda (x,y): x + Decimal(y), zip(a,b))
@@ -35,14 +35,14 @@ def getOperators(opStr, valIdx):
         """
 
         return :: (count :: int, sum :: Decimal)
-        
+
         """
         return (0, sum_init(valIdx))
     def avg_op(a, b):
         """
         a :: (int, [Decimal])
         b [Decimal]
-        
+
         """
         assert(len(a[1]) == len(b))
         return (a[0] + 1, sum_op(a[1], b))
@@ -58,11 +58,11 @@ def getOperators(opStr, valIdx):
         return None
 
 class Operators:
-    
+
     def __init__(self, args):
         """
         args :: argparse.Namespace
-            
+
         """
         self.grpIdx = map(lambda x: int(x) - 1, args.groupIndexes.split(','))
         self.valIdx = map(lambda x: int(x) - 1, args.valueIndexes.split(','))
@@ -76,12 +76,12 @@ class Operators:
 
         """
         return tuple(self.getGroup(rec))
-       
+
     def getGroup(self, rec):
         """
         rec :: [str]
         return :: [str]
-        
+
         """
         return self.getSubRecord(rec, self.grpIdx)
 
@@ -100,19 +100,19 @@ class Operators:
             index list
         return :: [str]
             sub record
-        
+
         """
         ret = []
         for i in idxes:
             ret.append(rec[i])
         return ret
-    
+
 def parseOpts(args):
     """
     args :: [str]
         argument string list
     return :: argparse.Namespace
-    
+
     """
     parser = argparse.ArgumentParser(
         description="")
@@ -122,7 +122,7 @@ def parseOpts(args):
     parser.add_argument("-v", "--values", dest="valueIndexes",
                         metavar='COLUMNS', default='2',
                         help="Column index list for target separated by comma.")
-    parser.add_argument("-o", "--op", dest="operator", 
+    parser.add_argument("-o", "--op", dest="operator",
                         metavar='OP', default='avg',
                         help="Operator. 'avg' or 'sum'.")
     parser.add_argument("-s", "--separator", dest="separator",

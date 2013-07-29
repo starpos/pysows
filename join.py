@@ -16,7 +16,7 @@ import pysows
 def getColumnIndexListWithPrefix(keyColsWithPrefix):
     """
     keyColsWithPrefix :: str
-        like "l1,l2,r1,r3". 
+        like "l1,l2,r1,r3".
         "l" menas left, "r" means right. 0 menas all columns.
     return :: [(str, int)]
         list of prefix and column index.
@@ -65,7 +65,7 @@ def generateGetOutputRecord(outColumnIndexes):
         rightRecord :: tuple(str)
         return :: tuple(str)
             merged record.
-            
+
         """
         ret = []
         for isLeft, idx in outColumnIndexes:
@@ -90,8 +90,8 @@ def parseOpts(argStrs):
 
     """
     parser = argparse.ArgumentParser(
-        description="Join two input streams." + 
-        " Left input will be load to memory as hash index." + 
+        description="Join two input streams." +
+        " Left input will be load to memory as hash index." +
         " This tool provide inner join. Join key must be unique but need not be sorted.")
     pysows.setVersion(parser)
     parser.add_argument('-lk', metavar='COLUMNS', dest='left_key', default='1',
@@ -101,7 +101,7 @@ def parseOpts(argStrs):
     parser.add_argument('-jk', metavar='COLUMNS', dest='join_key', default=None,
                         help='Both -lk and -rk.')
     parser.add_argument('-oc', metavar='COLUMNS', dest='out_columns', default='l0,r0',
-                        help='Output columns. prefix "l" means left input, ' + 
+                        help='Output columns. prefix "l" means left input, ' +
                         '"r" means right input. (default: l0,r0)')
     parser.add_argument('-li', metavar='INPUT', dest='left_input', default=None, required=True,
                         type=argparse.FileType('r'),
@@ -173,7 +173,7 @@ def doMain():
     outColumnIdxes = map(prefixToIsLeft,
                          getColumnIndexListWithPrefix(args.out_columns))
     getOutRec = generateGetOutputRecord(outColumnIdxes)
-    
+
     lReader = pysows.recordReader(args.left_input, args.separator)
     rReader = pysows.recordReader(args.right_input, args.separator)
 
@@ -183,7 +183,7 @@ def doMain():
 
     hashTable = createHashTable(lReader, lGetKey)
     resultIter = hashJoin(hashTable, rReader, rGetKey)
-    
+
     for lRec, rRec in resultIter:
         pysows.printList(getOutRec(lRec, rRec))
         print

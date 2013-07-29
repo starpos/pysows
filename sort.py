@@ -15,18 +15,18 @@ def parseOpts(args):
     args :: [str]
         argument string list
     return :: arpgarser.Namespace
-    
+
     """
     parser = argparse.ArgumentParser(
         description="Sort a list of record as an input stream.")
     pysows.setVersion(parser)
-    parser.add_argument("-g", "--groups", dest="group_indexes", 
+    parser.add_argument("-g", "--groups", dest="group_indexes",
                         metavar='COLUMNS', default='0',
                         help=pysows.GROUPS_HELP_MESSAGE)
     parser.add_argument("-k", "--keyfunc", dest="key_func",
                         metavar='FUNCTION', default="lambda *xs: xs",
                         help="Key function. (default: 'lambda *args: args')")
-    parser.add_argument("-c", "--cmpfunc", dest="cmp_func", 
+    parser.add_argument("-c", "--cmpfunc", dest="cmp_func",
                         metavar='FUNCTION', default=None,
                         help="(Not supported yet) Compare function. -c is prior to -k option.")
     parser.add_argument("-r", "--reverse", action="store_true", dest="reverse",
@@ -34,7 +34,7 @@ def parseOpts(args):
                         help="Reverse the result of comprations.")
     parser.add_argument("-l", "--load", dest="load_file", default=None,
                         help="Load python code for -k or -c.")
-    parser.add_argument("-s", "--separator", dest="separator", 
+    parser.add_argument("-s", "--separator", dest="separator",
                         metavar='SEP', default=None,
                         help="Column separator. (default: spaces)")
     return  parser.parse_args(args)
@@ -42,7 +42,7 @@ def parseOpts(args):
 def sortKeyAndLineGenerator(convIdxL, keyFunc, lineG, separator=None):
     """
     Make a (key, line) generator from a line generator.
-    
+
     convIdxL :: [(str -> ANY, int)]
         Index list.
         1st: converter from string to some type which is comparable.
@@ -57,7 +57,7 @@ def sortKeyAndLineGenerator(convIdxL, keyFunc, lineG, separator=None):
     return :: generator((ANY, str))
         1st: sort key which must be comparable.
         2nd: line without eol.
-    
+
     """
     def getKey(rec):
         """
@@ -81,11 +81,11 @@ def sortKeyAndLineGenerator(convIdxL, keyFunc, lineG, separator=None):
         keyFunc :: *tuple(ANY) -> tuple(ANY)
         line :: str
             input string line with eol.
-            
+
         return :: (ANY, str)
             1st: key for sort which must be comparable.
             2nd: line string without eol.
-        
+
         """
         line = line.rstrip()
         rec = line.split(separator)
@@ -103,7 +103,7 @@ def generateKeyFunc(keyFuncStr, globalNamespace, localNamespace):
     keyFuncStr :: str
     return :: *tuple(ANY) -> ANY
         ANY must be comparable.
-    
+
     """
     if keyFuncStr is not None:
         return eval(keyFuncStr, globalNamespace, localNamespace)
@@ -114,13 +114,13 @@ def doMain():
     args = parseOpts(sys.argv[1:])
 
     convIdxL = pysows.getTypedColumnIndexList(args.group_indexes)
-    
+
     g = globals()
     l = locals()
     pysows.loadPythonCodeFile(args.load_file, g, l)
     keyFunc = generateKeyFunc(args.key_func, g, l)
     reader = sortKeyAndLineGenerator(convIdxL, keyFunc, sys.stdin, args.separator)
-    
+
     for sortKey, line in sorted(reader, key=lambda (x,y):x, reverse=args.reverse):
         print line
 

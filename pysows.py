@@ -32,7 +32,7 @@ def loadPythonCodeFile(fileName, globalNamespace, localNamespace):
         Global namespace.
     localNamespace :: dict
         Local namespace.
-    
+
     """
     if fileName and os.path.isfile(fileName):
         exec(file(fileName), globalNamespace, localNamespace)
@@ -72,7 +72,7 @@ def getTypedColumnIndexList(typedColumnIndexListStr):
     return :: [((str -> ANY),int)]
         1st: converter.
         2nd: index.
-        
+
     """
     def getConverter(prefix):
         """
@@ -214,7 +214,7 @@ def testRecordReader():
 def printList(anyList, f=sys.stdout, sep='\t'):
     """
     Print list of printable objects.
-    
+
     anyList :: [any]
         any must be printable.
     f :: file

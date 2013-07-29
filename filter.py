@@ -16,27 +16,27 @@ def parseOpts(args):
     args :: [str]
         argument string list
     return :: argparse.Namespace
-    
+
     """
     parser = argparse.ArgumentParser(
         description="Filter a list of record as an input stream.")
     pysows.setVersion(parser)
-    parser.add_argument("-g", "--groups", dest="group_indexes", 
+    parser.add_argument("-g", "--groups", dest="group_indexes",
                         metavar='COLUMNS', default='0',
                         help=pysows.GROUPS_HELP_MESSAGE)
-    parser.add_argument("-p", "--predicate", dest="predicate", 
-                        metavar='PREDICATE', 
+    parser.add_argument("-p", "--predicate", dest="predicate",
+                        metavar='PREDICATE',
                         default='lambda *xs:True',
                         help="Predicate as python code." + \
                             " This must return bool value.")
-    parser.add_argument("-r", "--regex", dest="regex_list", 
+    parser.add_argument("-r", "--regex", dest="regex_list",
                         nargs='+', metavar='REGEX_PATTERN', default=None,
                         help="Regular expression." + \
                             " When both -p and -r options are specified, -r is used.")
-    parser.add_argument("-l", "--load", dest="load_file", 
+    parser.add_argument("-l", "--load", dest="load_file",
                         metavar='FILE', default=None,
                         help="Load python code for -p.")
-    parser.add_argument("-s", "--separator", dest="separator", 
+    parser.add_argument("-s", "--separator", dest="separator",
                         metavar='SEP', default=None,
                         help="Record separator. (default: spaces)")
     parser.add_argument("-v", "--invert", action="store_true", dest="invert",
@@ -57,7 +57,7 @@ def generateFilterByPredicate(predicateStr, convIdxL, globalNamespace, localName
         local name space.
     return :: tuple(str) -> bool
         Filter function.
-        
+
     """
     predicate = eval(predicateStr, globalNamespace, localNamespace)
     project1 = pysows.generateProjectConv(convIdxL)
@@ -66,7 +66,7 @@ def generateFilterByPredicate(predicateStr, convIdxL, globalNamespace, localName
         """
         rec :: tuple(str)
         return :: bool
-        
+
         """
         return predicate(*project1(rec))
     return filterByPredicate
@@ -85,17 +85,17 @@ def generateFilterByRegex(regexStrL, convIdxL):
         Separator string of columns in a line.
     return :: str -> bool
         Filter function.
-    
+
     """
     regexL = map(re.compile, regexStrL)
     idxL = map(lambda (_, idx): idx, convIdxL)
     project1 = pysows.generateProject(idxL)
-    
+
     def filterByRegex(rec):
         """
         rec :: tuple(str)
         return :: bool
-        
+
         """
         rec1 = project1(rec)
         if len(regexL) < len(rec1):
@@ -108,7 +108,7 @@ def generateFilterByRegex(regexStrL, convIdxL):
 
 def doMain():
     args = parseOpts(sys.argv[1:])
-    
+
     convIdxL = pysows.getTypedColumnIndexList(args.group_indexes)
 
     g = globals()

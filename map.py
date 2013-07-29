@@ -15,7 +15,7 @@ def parseOpts(argStrList):
     argStrList :: [str]
         argument string list
     return :: argparse.Namespace
-    
+
     """
     parser = argparse.ArgumentParser(
         description="Map a function to a list of record from an input stream.")
@@ -34,7 +34,7 @@ def parseOpts(argStrList):
                         help='Record constructor.' + \
                             ' This must return sequence of printable objects.' + \
                             " (default: 'lambda xs,ys:list(xs)+list(ys)')")
-    parser.add_argument('-l', '--load', metavar='FILE', dest='load_file', 
+    parser.add_argument('-l', '--load', metavar='FILE', dest='load_file',
                         default=None, help='Load python code for -f and -c.')
     parser.add_argument("-s", "--separator", metavar='SEP',
                         dest="separator", default=None,

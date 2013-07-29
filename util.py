@@ -8,7 +8,7 @@ import re
 def u2s(sizeU):
   """
   Convert size with unit suffix to size as integer value.
-  
+
   """
   assert(isinstance(sizeU, str))
   m = re.match('([0-9]+)([kmgtpKMGTP]){0,1}', sizeU)
@@ -40,20 +40,20 @@ def gplus(g0, g1):
   g1 :: iter(a)
   return :: generator(a)
   a :: any
-  
+
   """
   for a in g0:
     yield a
   for b in g1:
     yield b
-    
+
 def checkAndThrow(cond, msg=""):
   """
   cond :: bool
   msg :: str
   return :: None
   throw :: AssertionError
-  
+
   """
   if not cond:
     raise AssertionError(msg)
@@ -89,7 +89,7 @@ def isList(objL, cnst):
   cnst :: constructor like int, str.
     for isinstance(obj, cnst)
   return :: bool
-  
+
   """
   if not isinstance(objL, list):
     return False

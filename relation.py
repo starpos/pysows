@@ -81,7 +81,7 @@ class StringColumnType(ColumnType):
   @classmethod
   def name(cls):
     return "String"
-  
+
   @classmethod
   def isValid(cls, val):
     return isinstance(val, str)
@@ -139,7 +139,7 @@ class SchemaEntry:
   Schema entry.
   Use cls.parse() to parge formatted string to create an object.
   Use str(obj) to put formatted string.
-  
+
   """
   def __init__(self, colName, colType):
     assert(isinstance(colName, str))
@@ -152,7 +152,7 @@ class SchemaEntry:
     """
     return :: bool
     throw :: AssertionError
-    
+
     """
     util.checkAndThrow(isinstance(self.name(), str))
     util.checkAndThrow(len(self.name()) > 0)
@@ -233,7 +233,7 @@ class Schema:
   @classmethod
   def create(cls, colNameL, colTypeL):
     assert(cls.check2(colNameL, colTypeL))
-    schemaEntryL = map(lambda (colName, colType): 
+    schemaEntryL = map(lambda (colName, colType):
                        SchemaEntry(colName, colType),
                        zip(colNameL, colTypeL))
     return Schema(schemaEntryL)
@@ -360,7 +360,7 @@ class Schema:
 
     if self.size() != len(rawRec):
       return False
-    
+
     for schemaE, val in zip(self.foreach(), rawRec):
       if not schemaE.type().isValid(val):
         return False
@@ -442,7 +442,7 @@ class Schema:
       raise ValueError("column %s not found." % oldName)
     del self.__nameIdx[oldName]
     self.__insertNameIdx(newName, idx)
-      
+
     self[idx].rename(newName)
 
   def __insertNameIdx(self, name, idx):
@@ -466,7 +466,7 @@ class Schema:
     assert(util.isList(valueStrs, str) or util.isTuple(valueStrs, str))
     if util.isTuple(valueStrs, str):
       valueStrs = list(valueStrs)
-    
+
     assert(self.size() == len(valueStrs))
     return tuple(map(lambda (e, s): e.type().parse(s), zip(self.__schemaEntryL, valueStrs)))
 
@@ -507,7 +507,7 @@ class Column:
     assert(schemaEntry.type().isValid(colVal))
     self.__schemaEntry = schemaEntry
     self.__raw = colVal
-  
+
   @classmethod
   def parse(cls, schemaEntry, colValStr):
     return Column(schemaEntry, schemaEntry.type().parse(colValStr))
@@ -539,7 +539,7 @@ class Column:
   def __str__(self):
     """
     return :: str
-    
+
     """
     return self.type().toStr(self.raw())
 
@@ -567,7 +567,7 @@ class Record:
     schema :: Schema
     rawRec :: tuple(any)
        schema.isMatch(rawRec) must be True.
-    
+
     """
     assert(isinstance(schema, Schema))
     assert(isinstance(rawRec, tuple))
@@ -588,14 +588,14 @@ class Record:
   def raw(self):
     """
     return :: tuple(any)
-    
+
     """
     return self.__raw
 
   def schema(self):
     """
     return :: Schema
-    
+
     """
     return self.__schema
 
@@ -609,7 +609,7 @@ class Record:
   def __str__(self):
     """
     return :: str
-    
+
     """
     return self.schema().toStr(self.raw())
 
@@ -619,7 +619,7 @@ class Record:
   def size(self):
     """
     return :: int
-    
+
     """
     assert(self.schema().size() == len(self.raw()))
     return len(self.raw())
@@ -648,7 +648,7 @@ class Record:
       if isinstance(colNameL, tuple):
         colNameL = list(colNameL)
       return self.project(colNameL).raw()
-      
+
   def getRawKey(self, idxL):
     """
     idxL :: [int]
@@ -681,7 +681,7 @@ def projectRawRec(rawRec, idxL):
 def testRecord():
   """
   For test.
-  
+
   """
   schema = Schema.parse('#col0 col1 col2')
   rawRec = ('0', '1', '2')
@@ -711,7 +711,7 @@ def testRecord():
 class IterableData:
   """
   A iterable data.
-  
+
   """
 
   def __init__(self, iterable, reuse=False):
@@ -731,7 +731,7 @@ class IterableData:
 
   def isG(self):
     return not self.isL()
-  
+
   def toL(self):
     if not self.__isL:
       self.__isL = True
@@ -761,15 +761,15 @@ class IterableData:
 def testIterableData():
 
   xs = [0, 1, 2, 3, 4]
-  
+
   ys = IterableData(xs)
   assert(ys.isL())
   assert(list(ys) == xs)
-  
+
   def g():
     for x in xs:
       yield x
-  
+
   ys = IterableData(g())
   assert(ys.isG())
   assert(list(ys) == xs)
@@ -777,8 +777,8 @@ def testIterableData():
     raise "ys must be empty."
   ys = IterableData(xs) + IterableData(xs)
   assert(ys.__str__() == '[0, 1, 2, 3, 4, 0, 1, 2, 3, 4]')
-  
-  
+
+
 class Relation:
   """
   Relation type.
@@ -798,7 +798,7 @@ class Relation:
 
     """
     assert(isinstance(schema, Schema))
-    
+
     self.__schema = schema.copy() #copy
     self.__name = str(name) #copy
     self.__reuse = reuse
@@ -810,14 +810,14 @@ class Relation:
   def renameCol(self, oldCol, newCol):
     """
     Rename a column name.
-    
+
     oldCol :: str
       old column name.
     newCol :: str
       new column name.
 
     If oldCol not exists, ValueError wil be thrown.
-    
+
     """
     assert(isinstance(oldCol, str))
     assert(isinstance(newCol, str))
@@ -829,32 +829,32 @@ class Relation:
   def getL(self):
     """
     return :: [rawRec]
-    
+
     """
     return self.__idata.toL()
-  
+
   def getG(self):
     """
     return :: generator(rawRec)
-    
+
     """
     return self.__idata
-    
+
   def getRecG(self):
     """
     return :: generator(Record)
-    
+
     """
     for rawRec in self.getG():
       yield Record(self.schema(), rawRec)
-      
+
   def getRecL(self):
     """
     return :: [Record]
 
     """
     return list(self.getRecG())
-    
+
   def size(self):
     return len(self.getL())
 
@@ -863,7 +863,7 @@ class Relation:
     indexes :: [int]
         each item must be from 0 to num of records - 1.
     return :: Relation
-    
+
     """
     def gen():
       for idx in indexes:
@@ -879,18 +879,18 @@ class Relation:
     """
     pred :: Record -> bool
     return :: Relation
-    
+
     """
     def predicate(rawRec):
       return pred(Record(self.schema(), rawRec))
-    g = itertools.ifilter(predicate, self.getG()) 
+    g = itertools.ifilter(predicate, self.getG())
     return Relation(self.schema(), g, reuse)
 
   def project(self, cols, reuse=False):
     """
     cols :: [str]
     return :: Relation
-    
+
     """
     assert(util.isList(cols, str))
     schema, idxL = self.schema().project(cols)
@@ -914,7 +914,7 @@ class Relation:
        Comparable each other.
 
     return :: Relation
-       
+
     """
     if cols is not None:
       def getKey(rec):
@@ -947,7 +947,7 @@ class Relation:
 
     return Relation(self.schema(),
                     itertools.imap(lambda rec: rec.raw(), g), reuse=reuse)
-  
+
 
   def groupbyAsRelation(self, keyCols, valCols=None, reuse=False):
     """
@@ -957,7 +957,7 @@ class Relation:
         Name of value columns.
 
     return :: dict(keyColsT :: tuple([str]), Relation)
-    
+
     """
     def op(rel, rec):
       assert(isinstance(rel, Relation))
@@ -976,7 +976,7 @@ class Relation:
   def groupby(self, keyCols, op, cstr):
     """
     'group by' operation.
-    
+
     keyCols :: [str]
         Name of key columns.
     op :: (a -> Record -> a)
@@ -986,7 +986,7 @@ class Relation:
     return :: dict(keyColsT :: tuple([str]), a)
 
     a :: any
-    
+
     """
     def tmpOp(d, rec):
       assert(isinstance(d, dict))
@@ -1005,7 +1005,7 @@ class Relation:
     init :: a
     rel :: Relation
     return :: a
-    
+
     a :: any
 
     """
@@ -1025,7 +1025,7 @@ class Relation:
     colsFrom :: [str]
     schemaTo :: Schema
     mapper :: rawRec -> rawRec
-    
+
     """
     assert(util.isList(colsFrom, str))
     assert(isinstance(schemaTo, Schema))
@@ -1043,7 +1043,7 @@ class Relation:
     schemaTo :: Schema
         Result schema.
     mapper :: Record -> rawRec
-    
+
     """
     def g():
       for rec in self.getRecG():
@@ -1057,7 +1057,7 @@ class Relation:
     mapper :: rawRec -> a
     return :: generator(a) | None
     a :: any
-    
+
     """
     if colsFrom is None:
       tmpRel = self
@@ -1071,14 +1071,14 @@ class Relation:
     colsFrom :: [str] | None
     return :: [a]
     a :: any
-    
+
     """
     if colsFrom is None:
       tmpRel = self
     else:
       tmpRel = self.project(colsFrom)
     return map(mapper, tmpRel.getL())
-  
+
   def insert(self, rawRec):
     assert(self.schema().isMatch(rawRec))
     self.getL().append(rawRec)
@@ -1096,7 +1096,7 @@ class Relation:
     """
     sep :: str
     return :: str
-    
+
     """
     return '\n'.join(list(self.showG(sep=sep))) + '\n'
     #return str(self.schema()) + '\n' + \
@@ -1116,7 +1116,7 @@ class Relation:
   def __str__(self):
     """
     return :: str
-    
+
     """
     return self.show()
 
@@ -1147,7 +1147,7 @@ def testRelation():
   def op(i, rec):
     return i + rec['c1'] + rec['c2'] + rec['c3']
   assert(rel.foldl(op, 0) == 30)
-  
+
   # groupby
   d = rel.groupbyAsRelation(['c1'], ['c2', 'c3'])
   print "aaa"
@@ -1175,7 +1175,7 @@ def joinTwoRelations(keyCols, relCols0, relCols1, reuse=False):
   """
   Join two relations.
   This will execute sort and merge join.
-  
+
   keyCols :: tuple([str])
       Name of key columns.
       The key columns must be unique in both rel0 and rel1.
@@ -1186,7 +1186,7 @@ def joinTwoRelations(keyCols, relCols0, relCols1, reuse=False):
   reuse :: bool
   return :: Relation
     joined relations.
-  
+
   """
   rel0, cols0 = relCols0
   rel1, cols1 = relCols1
@@ -1245,7 +1245,7 @@ def joinRelations(keyCols, relColsList, reuse=False):
   Join multiple relations with a key.
   This will execute sort and merge join n-1 times
   where n is len(relColsList)
-  
+
   keyCols :: tuple([str])
     The key must be unique.
   relColsList :: [(rel, cols)]
@@ -1255,7 +1255,7 @@ def joinRelations(keyCols, relColsList, reuse=False):
     Each column name must be unique.
   return :: Relation
     joined relation with the key and target columns.
-  
+
   """
   assert(isinstance(keyCols, tuple))
   for col in keyCols:
@@ -1267,7 +1267,7 @@ def joinRelations(keyCols, relColsList, reuse=False):
     assert(isinstance(cols, list))
     for col in cols:
       assert(isinstance(col, str))
-      
+
   relCols0 = relColsList[0]
   for relCols1 in relColsList[1:]:
     relCols0 = joinTwoRelations(keyCols, relCols0, relCols1, reuse=False)
@@ -1284,14 +1284,14 @@ def testJoinRelations():
   rawRecL = [(x, x, x) for x in range(0, 3)]
   rel0 = Relation(schema, rawRecL, reuse=True)
   print rel0.show()
-  
+
   schema = Schema.parse('#k1::Integer k2::Integer v2::Integer')
   rawRecL = [(x, y, x + y)
              for x in range(0, 3)
              for y in range(0, 3)]
   rel1 = Relation(schema, rawRecL, reuse=True)
   print rel1.show()
-  
+
   joined = joinRelations(('k1', 'k2'),
                          [(rel0, ['v1']), (rel1, ['v2'])], reuse=True)
   print joined.show()

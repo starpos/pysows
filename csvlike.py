@@ -11,7 +11,7 @@ class CsvLike(Relation):
 
   1st line must be header starting by '#'
   where column names are listed separated by the separator.
-  
+
   """
   def __init__(self, lineGenerator, sep=None, schema=None, reuse=True):
     """
@@ -69,6 +69,6 @@ def sampleCsvLike():
   rel = CsvLike(fi)
   print rel,
   fi.close()
-  
+
 if __name__ == '__main__':
   sampleCsvLike()
