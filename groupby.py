@@ -34,14 +34,14 @@ def getOperators(opStr, valIdx):
     def avg_init(valIdx):
         """
 
-        return :: (count :: int, sum :: Decimal)
+        return :: (count :: int, [sum :: Decimal])
 
         """
         return (0, sum_init(valIdx))
     def avg_op(a, b):
         """
         a :: (int, [Decimal])
-        b [Decimal]
+        b [str]
 
         """
         assert(len(a[1]) == len(b))
@@ -49,11 +49,52 @@ def getOperators(opStr, valIdx):
     def avg_end(a):
         n, xs = a
         return map(lambda x: x / Decimal(n), xs)
+    def maxmin_init(valIdx):
+        """ return :: [None] """
+        return [None] * len(valIdx)
+    def maxmin_end(a):
+        return a
+    def max_op(a, b):
+        """
+        a :: [Decimal]
+        b :: [str]
+        return :: [Decimal]
+
+        """
+        def mapper((x, y)):
+            y1 = Decimal(y)
+            if x is None:
+                return y1
+            elif x < y1:
+                return y1
+            else:
+                return x
+        return map(mapper, zip(a, b))
+    def min_op(a, b):
+        """
+        a :: [Decimal]
+        b :: [str]
+        return :: [Decimal]
+
+        """
+        def mapper((x, y)):
+            y1 = Decimal(y)
+            if x is None:
+                return y1
+            elif y1 < x:
+                return y1
+            else:
+                return x
+        return map(mapper, zip(a, b))
 
     if opStr == "sum":
         return (sum_init, sum_op, sum_end)
     elif opStr == "avg":
         return (avg_init, avg_op, avg_end)
+    elif opStr == "max":
+        return (maxmin_init, max_op, maxmin_end)
+    elif opStr == "min":
+        return (maxmin_init, min_op, maxmin_end)
     else:
         return None
 
@@ -124,7 +165,7 @@ def parseOpts(args):
                         help="Column index list for target separated by comma.")
     parser.add_argument("-o", "--op", dest="operator",
                         metavar='OP', default='avg',
-                        help="Operator. 'avg' or 'sum'.")
+                        help="Operator. 'avg', 'sum', 'max', or 'min'.")
     parser.add_argument("-s", "--separator", dest="separator",
                         metavar='SEP', default=None,
                         help="Record separator (default: spaces).")
