@@ -25,10 +25,10 @@ def parseOpts(args):
 
 def doMain():
     args = parseOpts(sys.argv[1:])
-    idxL = pysows.getColumnIndexList(args.group_indexes)
+    idxL = pysows.getTypedColumnIndexList(args.group_indexes)
 
     for rec in pysows.recordReader(sys.stdin, args.separator):
-        pysows.printList(pysows.project(idxL, rec))
+        pysows.printList(pysows.projectConv(idxL, rec))
         print
 
 if __name__ == "__main__":
