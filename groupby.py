@@ -99,11 +99,11 @@ class AccMax(Accumulator):
 
 def parseAcc(s):
     '''
-    s :: str - like 'avg(2)', 'sum(3)' column index is 1-origin.
+    s :: str - like 'avg2', 'sum3' column index is 1-origin.
     return :: (int, Accumulator generator) - column index (0-origin) and accumulator generator.
     '''
     verify_type(s, str)
-    m = re.match('(\w+)\((\d+)\)', s)
+    m = re.match('(\w+)(\d+)', s)
     if not m:
         raise RuntimeError('parse operator failed:', s)
     op = m.group(1)
@@ -166,9 +166,9 @@ def parseOpts(args):
                    metavar='COLUMNS', default='1',
                    help="Column index list for group separated by comma.")
     p.add_argument("-v", "--values", dest="valueIndexes",
-                   metavar='COLUMNS', default='avg(2)',
+                   metavar='COLUMNS', default='avg2',
                    help=("List of operator and column index for target separated by comma, \n" +
-                         "like avg(2),min(2),max(2). Operator is one of 'avg', 'sum', 'min' or 'max'."))
+                         "like avg2,min2,max2. Operator is one of 'avg', 'sum', 'min' or 'max'."))
     p.add_argument("-s", "--separator", dest="separator",
                    metavar='SEP', default=None,
                    help="Record separator (default: spaces).")
