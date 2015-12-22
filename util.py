@@ -108,3 +108,37 @@ def isSequence(objSeq, cnst):
     if not isinstance(obj, cnst):
       return False
   return True
+
+
+def verify_type(obj, typeValue, elemType=None):
+  '''Verify type of an object.
+
+  It raises a TypeError when none of typeValue(s) did match obj.
+
+  obj       - object.
+  typeValue - type like int, str, list. or a list of them.
+  elemType  - specify type of elements if typeValue is sequence. or a list of them.
+  '''
+  if obj is None:
+    raise TypeError('None type')
+  if not isinstance(typeValue, list):
+    typeValue = [typeValue]
+  if all([not isinstance(obj, t) for t in typeValue]):
+    raise TypeError('Invalid object type: {} must be one of [{}]'
+                    .format(str(type(obj)), ','.join([str(t) for t in typeValue])))
+  if elemType is None:
+    return
+  if not isinstance(elemType, list):
+    elemType = [elemType]
+  for elem in obj:
+    if all([not isinstance(elem, t) for t in elemType]):
+      raise TypeError('Invalid element type: {} must be one of [{}]'
+                      .format(str(type(elem)), ','.join([str(t) for t in elemType])))
+
+
+def verify_int(obj):
+  '''
+  obj -- object to verify.
+  '''
+  if not isinstance(obj, int) and not isinstance(obj, long):
+    raise Exception('invalid type', type(obj))
