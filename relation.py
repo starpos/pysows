@@ -1,7 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
-
-__all__ = ['Schema', 'Record', 'Relation', 'joinRelations']
 
 import collections
 import itertools

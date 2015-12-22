@@ -1,7 +1,4 @@
-#/usr/bin/env python
-
-__all__ = ['u2s', 's2u', 'gplus', 'checkAndThrow', 'unzip', 'unzipG',
-           'isList', 'isTuple']
+#/usr/bin/python
 
 import re
 

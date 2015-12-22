@@ -1,7 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
-
-__all__ = ['CsvLike']
 
 from relation import Schema, Relation
 
