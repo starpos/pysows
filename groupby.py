@@ -8,183 +8,183 @@ GroupBy aggregator of a list of csv-like record as an input stream.
 import sys
 import argparse
 from decimal import Decimal
+import re
 import pysows
+from util import verify_type, unzip
 
-def getOperators(opStr, valIdx):
-    """
-    opStr :: str
-        operator string
-    return :: (a, a -> [str] -> a, a -> [b])
-        operator functions.
 
-    """
-    def sum_init(valIdx):
-        """ return :: [Decimal] """
-        return map(lambda x: Decimal('0.0'), range(len(valIdx)))
-    def sum_op(a, b):
-        """
-        a :: [Decimal]
-        b :: [str]
+class Accumulator(object):
+    '''
+    Base class or acumulator.
+    '''
+    def __init__(self):
+        pass
 
-        """
-        assert(len(a) == len(b))
-        return map(lambda (x,y): x + Decimal(y), zip(a,b))
-    def sum_end(a):
-        return a
-    def avg_init(valIdx):
-        """
+    def add(self, s):
+        raise RuntimeError('Not Implemented')
 
-        return :: (count :: int, [sum :: Decimal])
+    def get(self):
+        raise RuntimeError('Not Implemented')
 
-        """
-        return (0, sum_init(valIdx))
-    def avg_op(a, b):
-        """
-        a :: (int, [Decimal])
-        b [str]
 
-        """
-        assert(len(a[1]) == len(b))
-        return (a[0] + 1, sum_op(a[1], b))
-    def avg_end(a):
-        n, xs = a
-        return map(lambda x: x / Decimal(n), xs)
-    def maxmin_init(valIdx):
-        """ return :: [None] """
-        return [None] * len(valIdx)
-    def maxmin_end(a):
-        return a
-    def max_op(a, b):
-        """
-        a :: [Decimal]
-        b :: [str]
-        return :: [Decimal]
+class AccSum(Accumulator):
+    '''
+    sum accumulator.
+    '''
+    def __init__(self):
+        self.v = Decimal('0.0')
 
-        """
-        def mapper((x, y)):
-            y1 = Decimal(y)
-            if x is None:
-                return y1
-            elif x < y1:
-                return y1
-            else:
-                return x
-        return map(mapper, zip(a, b))
-    def min_op(a, b):
-        """
-        a :: [Decimal]
-        b :: [str]
-        return :: [Decimal]
+    def add(self, s):
+        verify_type(s, str)
+        self.v += Decimal(s)
 
-        """
-        def mapper((x, y)):
-            y1 = Decimal(y)
-            if x is None:
-                return y1
-            elif y1 < x:
-                return y1
-            else:
-                return x
-        return map(mapper, zip(a, b))
+    def get(self):
+        return self.v
 
-    if opStr == "sum":
-        return (sum_init, sum_op, sum_end)
-    elif opStr == "avg":
-        return (avg_init, avg_op, avg_end)
-    elif opStr == "max":
-        return (maxmin_init, max_op, maxmin_end)
-    elif opStr == "min":
-        return (maxmin_init, min_op, maxmin_end)
-    else:
-        return None
 
-class Operators:
+class AccAvg(Accumulator):
+    '''
+    average accumulator.
+    '''
+    def __init__(self):
+        self.c = 0
+        self.v = Decimal('0.0')
 
+    def add(self, s):
+        verify_type(s, str)
+        self.c += 1
+        self.v += Decimal(s)
+
+    def get(self):
+        return self.v / Decimal(self.c)
+
+
+class AccMin(Accumulator):
+    '''
+    minimum accumulator.
+    '''
+    def __init__(self):
+        self.v = None
+
+    def add(self, s):
+        verify_type(s, str)
+        v = Decimal(s)
+        if self.v is None:
+            self.v = v
+        elif self.v > v:
+            self.v = v
+
+    def get(self):
+        return self.v
+
+
+class AccMax(Accumulator):
+    '''
+    Maximum accumulator.
+    '''
+    def __init__(self):
+        self.v = None
+
+    def add(self, s):
+        verify_type(s, str)
+        v = Decimal(s)
+        if self.v is None:
+            self.v = v
+        elif self.v < v:
+            self.v = v
+
+    def get(self):
+        return self.v
+
+
+def parseAcc(s):
+    '''
+    s :: str - like 'avg(2)', 'sum(3)' column index is 1-origin.
+    return :: (int, Accumulator generator) - column index (0-origin) and accumulator generator.
+    '''
+    verify_type(s, str)
+    m = re.match('(\w+)\((\d+)\)', s)
+    if not m:
+        raise RuntimeError('parse operator failed:', s)
+    op = m.group(1)
+    idx1 = int(m.group(2))
+    if idx1 < 1:
+        raise RuntimeError('bad index', op, idx1)
+    d = {'avg': AccAvg, 'sum': AccSum, 'min': AccMin, 'max': AccMax, }
+    if op not in d:
+        raise RuntimeError('bad operator', op, idx1)
+    return (idx1 - 1, d[op])
+
+
+class AccumulatorGroup(object):
+    '''
+    Accumulator for each key.
+    '''
     def __init__(self, args):
-        """
-        args :: argparse.Namespace
+        verify_type(args, argparse.Namespace)
+        self.grpIdxL = map(lambda x: int(x) - 1, args.groupIndexes.split(','))
+        self.valIdxL, self.accGenL = unzip(map(parseAcc, args.valueIndexes.split(',')))
+        self.hashMap = {}
 
-        """
-        self.grpIdx = map(lambda x: int(x) - 1, args.groupIndexes.split(','))
-        self.valIdx = map(lambda x: int(x) - 1, args.valueIndexes.split(','))
-        getInitValues, self.operator, self.merge = getOperators(args.operator, self.valIdx)
-        self.initValues = getInitValues(self.valIdx)
+    def add(self, rec):
+        verify_type(rec, list, str)
 
-    def getKey(self, rec):
-        """
-        rec :: [str]
-        return :: [str]
+        key = tuple(self._getSubRecord(rec, self.grpIdxL))
+        if key not in self.hashMap:
+            self.hashMap[key] = [x() for x in self.accGenL]
 
-        """
-        return tuple(self.getGroup(rec))
+        valL = self._getSubRecord(rec, self.valIdxL)
+        accL = self.hashMap[key]
+        for acc, val in zip(accL, valL):
+            acc.add(val)
 
-    def getGroup(self, rec):
-        """
-        rec :: [str]
-        return :: [str]
+    def iteritems(self):
+        for key, accL in sorted(self.hashMap.iteritems(), key=lambda x: x[0]):
+            yield list(key) + [acc.get() for acc in accL]
 
-        """
-        return self.getSubRecord(rec, self.grpIdx)
-
-    def getValues(self, rec):
-        """
-        rec :: [str]
-        return :: [str]
-        """
-        return self.getSubRecord(rec, self.valIdx)
-
-    def getSubRecord(self, rec, idxes):
-        """
-        rec :: [str]
-            record
-        idxes :: [int]
-            index list
-        return :: [str]
-            sub record
-
-        """
+    def _getSubRecord(self, rec, idxes):
+        '''
+        rec :: [str] - record
+        idxes :: [int] - index list
+        return :: [str] - sub record
+        '''
+        verify_type(rec, list, str)
+        verify_type(idxes, list, [int, long])
         ret = []
         for i in idxes:
             ret.append(rec[i])
         return ret
 
-def parseOpts(args):
-    """
-    args :: [str]
-        argument string list
-    return :: argparse.Namespace
 
-    """
-    parser = argparse.ArgumentParser(
-        description="")
-    parser.add_argument("-g", "--groups", dest="groupIndexes",
-                        metavar='COLUMNS', default='1',
-                        help="Column index list for group separated by comma.")
-    parser.add_argument("-v", "--values", dest="valueIndexes",
-                        metavar='COLUMNS', default='2',
-                        help="Column index list for target separated by comma.")
-    parser.add_argument("-o", "--op", dest="operator",
-                        metavar='OP', default='avg',
-                        help="Operator. 'avg', 'sum', 'max', or 'min'.")
-    parser.add_argument("-s", "--separator", dest="separator",
-                        metavar='SEP', default=None,
-                        help="Record separator (default: spaces).")
-    return parser.parse_args(args)
+def parseOpts(args):
+    '''
+    args :: [str] - argument string list
+    return :: argparse.Namespace
+    '''
+    p = argparse.ArgumentParser(description="")
+    p.add_argument("-g", "--groups", dest="groupIndexes",
+                   metavar='COLUMNS', default='1',
+                   help="Column index list for group separated by comma.")
+    p.add_argument("-v", "--values", dest="valueIndexes",
+                   metavar='COLUMNS', default='avg(2)',
+                   help=("List of operator and column index for target separated by comma, \n" +
+                         "like avg(2),min(2),max(2). Operator is one of 'avg', 'sum', 'min' or 'max'."))
+    p.add_argument("-s", "--separator", dest="separator",
+                   metavar='SEP', default=None,
+                   help="Record separator (default: spaces).")
+    return p.parse_args(args)
+
 
 def doMain():
-    grpValMap = {}
     args = parseOpts(sys.argv[1:])
-    op = Operators(args)
+    accGrp = AccumulatorGroup(args)
     for line in sys.stdin:
         rec = line.rstrip().split(args.separator)
-        grps = tuple(op.getGroup(rec))
-        vals = op.getValues(rec)
-        if grps not in grpValMap:
-            grpValMap[grps] = op.initValues
-        grpValMap[grps] = op.operator(grpValMap[grps], vals)
-    for grps, vals in grpValMap.iteritems():
-        pysows.printList(list(grps) + op.merge(vals))
+        accGrp.add(rec)
+    for sL in accGrp.iteritems():
+        pysows.printList(sL)
         print
+
 
 if __name__ == "__main__":
     try:
