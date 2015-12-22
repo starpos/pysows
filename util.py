@@ -55,30 +55,47 @@ def checkAndThrow(cond, msg=""):
   if not cond:
     raise AssertionError(msg)
 
-def unzip(listOfPair):
-  """
-  listOfPair :: list(tuple(any))
-  return :: (list, list)
 
-  """
-  a, b = unzipG(listOfPair)
-  return (list(a), list(b))
+def unzip(generatorOfTuple):
+  '''
+  generatorOfTuple :: generator(tuple)
+  return :: tuple(list)
+  '''
+  return tuple(map(list, list(unzipG(generatorOfTuple))))
 
-def unzipG(listOfPair):
-  """
-  listOfPair :: list(tuple(any))
-  return :: generator(
 
-  """
+def unzipG(generatorOfTuple):
+  '''
+  generatorOfTuple :: generator(tuple)
+  return :: tuple(generator)
+  '''
   def g1():
-    for a, _ in listOfPair:
-      yield a
+    for t in generatorOfTuple:
+      yield list(t)
+  g = g1()
+  try:
+    itemL = g.next()
+  except StopIteration:
+    return ()
+  nr = len(itemL)
+  LL = [[] for _ in xrange(nr)]
+  for L, item in zip(LL, itemL):
+    L.append(item)
 
-  def g2():
-    for _, b in listOfPair:
-      yield b
+  class G2(object):
+    def __init__(self, i):
+      self.i = i
+    def __iter__(self):
+      return self
+    def next(self):
+      if len(LL[self.i]) == 0:
+        itemL = g.next()
+        for L, item in zip(LL, itemL):
+          L.append(item)
+      return LL[self.i].pop(0)
 
-  return g1(), g2()
+  return tuple([G2(i) for i in xrange(nr)])
+
 
 def isList(objL, cnst):
   """
