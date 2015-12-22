@@ -122,14 +122,15 @@ class AccumulatorGroup(object):
     '''
     def __init__(self, args):
         verify_type(args, argparse.Namespace)
-        self.grpIdxL = map(lambda x: int(x) - 1, args.groupIndexes.split(','))
+        self.convL, grpIdxL = unzip(pysows.getTypedColumnIndexList(args.groupIndexes))
+        self.grpIdxL = [x - 1 for x in grpIdxL] # convert to 0-origin.
         self.valIdxL, self.accGenL = unzip(map(parseAcc, args.valueIndexes.split(',')))
         self.hashMap = {}
 
     def add(self, rec):
         verify_type(rec, list, str)
 
-        key = tuple(self._getSubRecord(rec, self.grpIdxL))
+        key = self._getKey(rec)
         if key not in self.hashMap:
             self.hashMap[key] = [x() for x in self.accGenL]
 
@@ -155,6 +156,16 @@ class AccumulatorGroup(object):
             ret.append(rec[i])
         return ret
 
+    def _getKey(self, rec):
+        '''
+        rec :: [str] - record
+        return :: tuple(ANY) - key object.
+        '''
+        L = []
+        for conv, col in zip(self.convL, self._getSubRecord(rec, self.grpIdxL)):
+            L.append(conv(col))
+        return tuple(L)
+
 
 def parseOpts(args):
     '''
@@ -163,8 +174,7 @@ def parseOpts(args):
     '''
     p = argparse.ArgumentParser(description="")
     p.add_argument("-g", "--groups", dest="groupIndexes",
-                   metavar='COLUMNS', default='1',
-                   help="Column index list for group separated by comma.")
+                   metavar='COLUMNS', default='1', help=pysows.GROUPS_HELP_MESSAGE)
     p.add_argument("-v", "--values", dest="valueIndexes",
                    metavar='COLUMNS', default='avg2',
                    help=("List of operator and column index for target separated by comma, \n" +
