@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 """
 GroupBy aggregator of a list of csv-like record as an input stream.
