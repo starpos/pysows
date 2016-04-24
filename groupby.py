@@ -104,7 +104,7 @@ def parseAcc(s):
     return :: (int, Accumulator generator) - column index (0-origin) and accumulator generator.
     '''
     verify_type(s, str)
-    m = re.match('(\w+)(\d+)', s)
+    m = re.match('([^0-9]+)([0-9]+)', s)
     if not m:
         raise RuntimeError('parse operator failed:', s)
     op = m.group(1)
